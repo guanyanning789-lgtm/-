@@ -1,262 +1,370 @@
 import json
 import os
 import tkinter as tk
-from tkinter import ttk, messagebox
 from datetime import datetime
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(APP_DIR, "study_progress.json")
 
-DAY1 = {
-    "title": "Day 1｜5 小時 IELTS 基礎實戰",
-    "hours": [
-        {
-            "name": "第 1 小時｜單字與語法打底",
-            "content": """今日 20 個高頻基礎單字\n\n1. cause (v.) 導致\n2. lead to (phr.) 導致\n3. effect (n.) 影響\n4. allow (v.) 允許\n5. prevent (v.) 預防；阻止\n6. increase (v.) 增加\n7. decrease (v.) 減少\n8. government (n.) 政府\n9. public (n./adj.) 公眾；公共的\n10. lifestyle (n.) 生活方式\n11. skill (n.) 技能\n12. environment (n.) 環境\n13. pollution (n.) 污染\n14. device (n.) 設備\n15. opinion (n.) 觀點\n16. suggest (v.) 建議\n17. problem (n.) 問題\n18. solution (n.) 解決方案\n19. improve (v.) 改善\n20. provide (v.) 提供\n\n黃金句型\nA + lead to + B（A 導致 B）\n\n造句示例\nHeavy traffic leads to air pollution.""",
-        },
-        {
-            "name": "第 2 小時｜聽力精聽",
-            "content": """Listening - Section 1\n\n考點詞彙\n• register — 登記\n• deposit — 押金\n• membership — 會員\n• address — 地址\n\n聽寫句子\nYou need to pay a 50-dollar deposit for the membership.\n\n練習要求\n1. 先聽 3 次，不看文本。\n2. 寫出你聽到的內容。\n3. 對照原句，圈出漏聽詞。\n4. 再跟讀 5 次。\n\n重點：聽到數字 50 與 deposit 時要快速反應。""",
-        },
-        {
-            "name": "第 3 小時｜閱讀定位",
-            "content": """Reading - Passage 1\n\n同義替換\n• improve → make better\n• prevent → stop\n\n句子解剖\nOriginal: The new policy helps to prevent young people from smoking.\nQuestion: The government aims to stop youth smoking.\nAnswer: TRUE\n\n練習要求\n• 找出題目中的定位詞。\n• 找到原文同義替換。\n• 不要只看單字相同，要看意思是否一致。""",
-        },
-        {
-            "name": "第 4 小時｜口語 Part 1 對練",
-            "content": """主題：Hometown\n\nQ: What do you like most about your hometown?\nA: I like the public transport system. The local government has done a lot to improve the buses recently.\n\n今日任務\n1. 朗讀示例 5 次。\n2. 不看文本回答 3 次。\n3. 用 improve / public 各造 1 句。\n4. 錄音 60 秒，聽回自己的停頓與文法。""",
-        },
-        {
-            "name": "第 5 小時｜寫作簡單句",
-            "content": """Writing Task 2 基礎\n\n題目：有些人認為政府應該花錢改善大眾運輸，你同意嗎？\n\n示例\n1. I agree that the government should provide better buses and trains.\n2. Good public transport can reduce cars and lead to cleaner air.\n\n今日任務\n• 仿寫 5 句。\n• 至少使用 government / provide / lead to。\n• 每句只寫一個清楚意思，先求正確，再求複雜。""",
-        },
-    ],
+BG = "#000000"
+FG = "#FFFFFF"
+MUTED = "#BEBEBE"
+FONT_CN = "Microsoft YaHei UI"
+FONT_EN = "Segoe UI"
+
+VOCAB = [
+    ("cause", "导致"), ("lead to", "导致"), ("effect", "影响"), ("allow", "允许"),
+    ("prevent", "阻止"), ("increase", "增加"), ("decrease", "减少"), ("government", "政府"),
+    ("public", "公共的"), ("lifestyle", "生活方式"), ("skill", "技能"), ("environment", "环境"),
+    ("pollution", "污染"), ("device", "设备"), ("opinion", "观点"), ("suggest", "建议"),
+    ("problem", "问题"), ("solution", "解决方案"), ("improve", "改善"), ("provide", "提供"),
+    ("benefit", "好处"), ("cost", "成本"), ("local", "当地的"), ("community", "社区"),
+    ("service", "服务"), ("transport", "交通"), ("traffic", "交通流量"), ("health", "健康"),
+    ("education", "教育"), ("family", "家庭"), ("city", "城市"), ("change", "改变"),
+    ("important", "重要的"), ("common", "常见的"), ("reason", "原因"), ("result", "结果"),
+    ("support", "支持"), ("reduce", "减少"), ("develop", "发展"), ("future", "未来"),
+    ("people", "人们"), ("work", "工作"), ("study", "学习"), ("travel", "旅行"),
+    ("live", "居住"), ("help", "帮助"), ("plan", "计划"), ("learn", "学习"),
+    ("start", "开始"), ("finish", "完成"), ("choose", "选择"), ("practice", "练习"),
+    ("change", "变化"), ("create", "创造"), ("use", "使用"), ("need", "需要"),
+    ("decide", "决定"), ("happen", "发生"), ("save", "节省"), ("money", "金钱"),
+    ("time", "时间"), ("technology", "技术"), ("society", "社会"), ("culture", "文化"),
+    ("country", "国家"), ("school", "学校"), ("student", "学生"), ("teacher", "教师"),
+    ("company", "公司"), ("job", "工作"), ("experience", "经验"), ("knowledge", "知识"),
+    ("information", "信息"), ("communication", "沟通"), ("language", "语言"), ("ability", "能力"),
+    ("quality", "质量"), ("choice", "选择"), ("difference", "差异"), ("example", "例子"),
+    ("challenge", "挑战"), ("advantage", "优点"), ("disadvantage", "缺点"), ("agree", "同意"),
+    ("disagree", "不同意"), ("believe", "相信"), ("consider", "考虑"), ("possible", "可能的"),
+    ("necessary", "必要的"), ("successful", "成功的"), ("available", "可用的"), ("different", "不同的"),
+    ("similar", "相似的"), ("modern", "现代的"), ("traditional", "传统的"), ("natural", "自然的"),
+    ("global", "全球的"), ("individual", "个人"), ("responsibility", "责任"), ("opportunity", "机会")
+]
+
+LISTENING = {
+    "title": "听力",
+    "instruction": "先看任务，然后隐藏原句。听写完成后再核对。",
+    "sentence": "You need to pay a 50-dollar deposit for the membership.",
+    "translation": "你需要为会员资格支付50美元押金。",
 }
 
-DAY2_BANK = {
-    "tense": {
-        "title": "Day 2｜動詞時態修復日",
-        "focus": "你在 Day 1 回報了時態／動詞變形問題，因此今天優先練『一般現在式 vs 過去式』。",
-        "grammar": "I work / I worked / She works / They worked\n\n規則：\n• 習慣、事實 → 一般現在式\n• 已經完成的過去事件 → 過去式\n• he/she/it 現在式動詞通常 + s",
-        "words": ["change", "develop", "decide", "happen", "support", "reduce", "create", "use", "need", "work", "study", "travel", "live", "help", "plan", "learn", "start", "finish", "choose", "practice"],
-    },
-    "vocab": {
-        "title": "Day 2｜詞彙鞏固日",
-        "focus": "你在 Day 1 回報了單字問題，因此今天增加詞彙重複與造句。",
-        "grammar": "句型：A can help B to + 動詞原形。\nExample: Public transport can help people to save money.",
-        "words": ["benefit", "cost", "local", "community", "service", "transport", "traffic", "health", "education", "work", "family", "city", "change", "important", "common", "reason", "result", "support", "reduce", "develop"],
-    },
-    "default": {
-        "title": "Day 2｜基礎能力連接日",
-        "focus": "Day 1 已完成。今天繼續把單字、聽力、閱讀、口語、寫作串在一起。",
-        "grammar": "句型：There are several reasons why + 句子。\nExample: There are several reasons why public transport is important.",
-        "words": ["reason", "result", "benefit", "service", "community", "health", "education", "transport", "traffic", "cost", "local", "important", "common", "support", "reduce", "develop", "change", "future", "people", "city"],
-    },
+READING = {
+    "title": "长难句",
+    "instruction": "先自己拆分句子，再看结构提示。",
+    "sentence": "Although public transport requires significant investment, it can reduce traffic congestion and improve the quality of life for people who live in large cities.",
+    "translation": "虽然公共交通需要大量投资，但它可以减少交通拥堵，并改善居住在大城市中的人们的生活质量。",
+    "structure": "Although + 从句，主句 + and + 并列谓语，who + 定语从句。",
+}
+
+SPEAKING = {
+    "title": "口语",
+    "instruction": "大声回答一次。控制在60秒以内。完成后继续。",
+    "question": "What do you like most about your hometown?",
+    "sample": "I like the public transport system because it is convenient and helps people save time.",
+}
+
+WRITING = {
+    "title": "写作",
+    "instruction": "自己写一句英文。只表达一个清楚的意思，完成后再核对示例。",
+    "prompt": "政府应该改善公共交通。请写一句表达同意的英文句子。",
+    "sample": "I agree that the government should provide better public transport because it can reduce traffic and improve daily life.",
 }
 
 
 class IELTSApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("IELTS Daily 5H｜Day 1")
-        self.geometry("1180x760")
-        self.minsize(980, 650)
-        self.configure(bg="#f4f4f4")
+        self.title("IELTS Daily")
+        self.configure(bg=BG)
+        self.attributes("-fullscreen", True)
+        self.bind("<Escape>", lambda e: self.attributes("-fullscreen", False))
+        self.bind("<F11>", self.toggle_fullscreen)
+
         self.state_data = self.load_state()
-        self.current_hour = 0
-        self.build_style()
-        self.build_ui()
-        self.show_hour(0)
-        self.refresh_progress()
+        self.page = "home"
+        self.vocab_page = 0
+        self.reveal = False
 
-    def build_style(self):
-        style = ttk.Style(self)
-        style.theme_use("clam")
-        style.configure("TButton", font=("Microsoft JhengHei UI", 11), padding=10)
-        style.configure("Accent.TButton", font=("Microsoft JhengHei UI", 11, "bold"), padding=11)
-        style.configure("TProgressbar", thickness=14)
+        self.root_frame = tk.Frame(self, bg=BG)
+        self.root_frame.pack(fill="both", expand=True)
+        self.show_home()
 
-    def build_ui(self):
-        top = tk.Frame(self, bg="white", height=92)
-        top.pack(fill="x")
-        top.pack_propagate(False)
-        tk.Label(top, text="IELTS DAILY 5H", bg="white", fg="#111", font=("Segoe UI", 23, "bold")).pack(side="left", padx=28, pady=20)
-        tk.Label(top, text="Day 1｜基礎打底", bg="white", fg="#666", font=("Microsoft JhengHei UI", 12)).pack(side="left", pady=28)
-
-        body = tk.Frame(self, bg="#f4f4f4")
-        body.pack(fill="both", expand=True)
-
-        sidebar = tk.Frame(body, bg="#111111", width=280)
-        sidebar.pack(side="left", fill="y")
-        sidebar.pack_propagate(False)
-
-        tk.Label(sidebar, text="今日 5 小時", bg="#111", fg="white", font=("Microsoft JhengHei UI", 16, "bold")).pack(anchor="w", padx=22, pady=(24, 12))
-        self.hour_buttons = []
-        for i, item in enumerate(DAY1["hours"]):
-            button = tk.Button(
-                sidebar,
-                text=item["name"],
-                anchor="w",
-                command=lambda x=i: self.show_hour(x),
-                bg="#111",
-                fg="#ddd",
-                activebackground="#2a2a2a",
-                activeforeground="white",
-                relief="flat",
-                bd=0,
-                padx=22,
-                pady=14,
-                font=("Microsoft JhengHei UI", 10),
-            )
-            button.pack(fill="x")
-            self.hour_buttons.append(button)
-
-        tk.Frame(sidebar, bg="#333", height=1).pack(fill="x", padx=20, pady=15)
-        tk.Button(
-            sidebar,
-            text="✓ 晚上打卡 / 生成 Day 2",
-            command=self.open_checkin,
-            bg="white",
-            fg="#111",
-            relief="flat",
-            padx=12,
-            pady=12,
-            font=("Microsoft JhengHei UI", 10, "bold"),
-        ).pack(fill="x", padx=20)
-
-        main = tk.Frame(body, bg="#f4f4f4")
-        main.pack(side="left", fill="both", expand=True, padx=24, pady=22)
-
-        card = tk.Frame(main, bg="white", bd=0)
-        card.pack(fill="both", expand=True)
-        self.title_label = tk.Label(card, text="", bg="white", fg="#111", font=("Microsoft JhengHei UI", 20, "bold"), anchor="w")
-        self.title_label.pack(fill="x", padx=28, pady=(26, 12))
-
-        self.text = tk.Text(card, wrap="word", bg="white", fg="#222", relief="flat", font=("Microsoft JhengHei UI", 12), padx=28, pady=12, spacing1=3, spacing3=8)
-        self.text.pack(fill="both", expand=True)
-        self.text.configure(state="disabled")
-
-        bottom = tk.Frame(card, bg="white")
-        bottom.pack(fill="x", padx=28, pady=18)
-        self.complete_btn = ttk.Button(bottom, text="標記本小時完成", style="Accent.TButton", command=self.mark_complete)
-        self.complete_btn.pack(side="right")
-        ttk.Button(bottom, text="上一小時", command=self.prev_hour).pack(side="left")
-        ttk.Button(bottom, text="下一小時", command=self.next_hour).pack(side="left", padx=8)
-
-        progress_frame = tk.Frame(main, bg="#f4f4f4")
-        progress_frame.pack(fill="x", pady=(16, 0))
-        self.progress = ttk.Progressbar(progress_frame, maximum=5)
-        self.progress.pack(side="left", fill="x", expand=True)
-        self.progress_label = tk.Label(progress_frame, text="0 / 5 完成", bg="#f4f4f4", fg="#444", font=("Microsoft JhengHei UI", 10, "bold"))
-        self.progress_label.pack(side="left", padx=(14, 0))
-
-    def show_hour(self, idx):
-        self.current_hour = idx
-        item = DAY1["hours"][idx]
-        self.title_label.config(text=item["name"])
-        self.text.configure(state="normal")
-        self.text.delete("1.0", "end")
-        self.text.insert("1.0", item["content"])
-        self.text.configure(state="disabled")
-        for i, button in enumerate(self.hour_buttons):
-            button.config(bg="#2a2a2a" if i == idx else "#111", fg="white" if i == idx else "#ddd")
-        done = str(idx) in self.state_data.get("completed_hours", [])
-        self.complete_btn.config(text="✓ 已完成" if done else "標記本小時完成")
-
-    def prev_hour(self):
-        self.show_hour(max(0, self.current_hour - 1))
-
-    def next_hour(self):
-        self.show_hour(min(4, self.current_hour + 1))
-
-    def mark_complete(self):
-        completed = set(self.state_data.get("completed_hours", []))
-        completed.add(str(self.current_hour))
-        self.state_data["completed_hours"] = sorted(completed)
-        self.save_state()
-        self.refresh_progress()
-        self.show_hour(self.current_hour)
-        if len(completed) == 5:
-            messagebox.showinfo("完成", "Day 1 的 5 小時已全部完成！\n現在可以進行晚上打卡。")
-
-    def refresh_progress(self):
-        completed_count = len(self.state_data.get("completed_hours", []))
-        self.progress["value"] = completed_count
-        self.progress_label.config(text=f"{completed_count} / 5 完成")
-
-    def open_checkin(self):
-        window = tk.Toplevel(self)
-        window.title("Day 1 晚上打卡")
-        window.geometry("720x560")
-        window.configure(bg="white")
-        window.transient(self)
-        tk.Label(window, text="Day 1 晚上打卡", bg="white", fg="#111", font=("Microsoft JhengHei UI", 20, "bold")).pack(anchor="w", padx=28, pady=(25, 8))
-        tk.Label(window, text="把今天最明顯的錯誤直接寫下來。系統會依錯誤生成 Day 2 重點。", bg="white", fg="#666", font=("Microsoft JhengHei UI", 11)).pack(anchor="w", padx=28)
-        box = tk.Text(window, wrap="word", font=("Microsoft JhengHei UI", 12), relief="solid", bd=1, height=10, padx=12, pady=12)
-        box.pack(fill="both", expand=True, padx=28, pady=18)
-        box.insert("1.0", self.state_data.get("day1_note", ""))
-
-        def submit():
-            note = box.get("1.0", "end").strip()
-            self.state_data["day1_note"] = note
-            self.state_data["day1_checked_in_at"] = datetime.now().isoformat(timespec="seconds")
-            self.state_data["day2"] = self.generate_day2(note)
-            self.save_state()
-            window.destroy()
-            self.show_day2()
-
-        ttk.Button(window, text="完成打卡並生成 Day 2", style="Accent.TButton", command=submit).pack(pady=(0, 25))
-
-    def generate_day2(self, note):
-        note_lower = note.lower()
-        if any(keyword in note_lower for keyword in ["時態", "时态", "過去式", "过去式", "動詞", "动词", "tense", "verb"]):
-            key = "tense"
-        elif any(keyword in note_lower for keyword in ["單字", "单词", "詞彙", "词汇", "vocab", "word"]):
-            key = "vocab"
-        else:
-            key = "default"
-        bank = DAY2_BANK[key]
-        return {
-            "generated_from": note,
-            "title": bank["title"],
-            "focus": bank["focus"],
-            "grammar": bank["grammar"],
-            "words": bank["words"],
-        }
-
-    def show_day2(self):
-        day2 = self.state_data.get("day2") or self.generate_day2("")
-        window = tk.Toplevel(self)
-        window.title(day2["title"])
-        window.geometry("850x680")
-        window.configure(bg="white")
-        tk.Label(window, text=day2["title"], bg="white", fg="#111", font=("Microsoft JhengHei UI", 21, "bold")).pack(anchor="w", padx=30, pady=(26, 8))
-        tk.Label(window, text=day2["focus"], bg="white", fg="#555", wraplength=760, justify="left", font=("Microsoft JhengHei UI", 11)).pack(anchor="w", padx=30)
-        content = (
-            "\n\n【第 1 小時重點語法】\n"
-            + day2["grammar"]
-            + "\n\n【Day 2 新 20 詞】\n"
-            + "\n".join(f"{i + 1}. {word}" for i, word in enumerate(day2["words"]))
-            + "\n\n其餘 4 小時會沿用同一主題，把今天的弱點放進聽力、閱讀、口語與寫作。"
-        )
-        text = tk.Text(window, wrap="word", font=("Microsoft JhengHei UI", 12), relief="flat", padx=30, pady=20)
-        text.pack(fill="both", expand=True)
-        text.insert("1.0", content)
-        text.configure(state="disabled")
+    def toggle_fullscreen(self, event=None):
+        self.attributes("-fullscreen", not self.attributes("-fullscreen"))
 
     def load_state(self):
-        if os.path.exists(DATA_FILE):
-            try:
-                with open(DATA_FILE, "r", encoding="utf-8") as file:
-                    return json.load(file)
-            except Exception:
-                pass
-        return {"completed_hours": [], "day1_note": ""}
+        if not os.path.exists(DATA_FILE):
+            return {"date": datetime.now().strftime("%Y-%m-%d"), "completed": []}
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("date") != datetime.now().strftime("%Y-%m-%d"):
+                return {"date": datetime.now().strftime("%Y-%m-%d"), "completed": []}
+            return data
+        except Exception:
+            return {"date": datetime.now().strftime("%Y-%m-%d"), "completed": []}
 
     def save_state(self):
-        with open(DATA_FILE, "w", encoding="utf-8") as file:
-            json.dump(self.state_data, file, ensure_ascii=False, indent=2)
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(self.state_data, f, ensure_ascii=False, indent=2)
+
+    def clear(self):
+        for widget in self.root_frame.winfo_children():
+            widget.destroy()
+
+    def center_container(self, max_width=1180):
+        outer = tk.Frame(self.root_frame, bg=BG)
+        outer.pack(fill="both", expand=True)
+        box = tk.Frame(outer, bg=BG, width=max_width)
+        box.place(relx=0.5, rely=0.5, anchor="center")
+        return box
+
+    def label(self, parent, text, size=24, bold=False, muted=False, pady=8):
+        font = (FONT_CN, size, "bold" if bold else "normal")
+        w = tk.Label(parent, text=text, bg=BG, fg=MUTED if muted else FG,
+                     font=font, justify="center", wraplength=1180)
+        w.pack(pady=pady)
+        return w
+
+    def button(self, parent, text, command, width=18, pady=8):
+        b = tk.Button(parent, text=text, command=command, bg=FG, fg=BG,
+                      activebackground=FG, activeforeground=BG,
+                      font=(FONT_CN, 18, "bold"), relief="flat", bd=0,
+                      cursor="hand2", width=width, padx=12, pady=10)
+        b.pack(pady=pady)
+        return b
+
+    def text_button(self, parent, text, command):
+        b = tk.Button(parent, text=text, command=command, bg=BG, fg=FG,
+                      activebackground=BG, activeforeground=FG,
+                      font=(FONT_CN, 15), relief="flat", bd=0,
+                      cursor="hand2")
+        b.pack(pady=6)
+        return b
+
+    def mark_complete(self, key):
+        done = set(self.state_data.get("completed", []))
+        done.add(key)
+        self.state_data["completed"] = sorted(done)
+        self.save_state()
+
+    def is_done(self, key):
+        return key in self.state_data.get("completed", [])
+
+    def show_home(self):
+        self.page = "home"
+        self.clear()
+        box = self.center_container()
+        self.label(box, "IELTS DAILY", 42, True, pady=4)
+        self.label(box, "今天的学习", 22, False, True, pady=(0 if False else 6))
+
+        completed = len(self.state_data.get("completed", []))
+        self.label(box, f"已完成 {completed} / 9", 18, False, True, pady=16)
+
+        menu = [
+            ("单词 100", self.show_vocab, self.is_done("vocab")),
+            ("听力 1句", self.show_listening, self.is_done("listening")),
+            ("长难句 1句", self.show_reading, self.is_done("reading")),
+            ("口语 1题", self.show_speaking, self.is_done("speaking")),
+            ("写作 1句", self.show_writing, self.is_done("writing")),
+        ]
+        for title, cmd, done in menu:
+            text = f"{title}    已完成" if done else title
+            self.text_button(box, text, cmd)
+
+        self.label(box, "F11 全屏    Esc 退出全屏", 13, False, True, pady=20)
+
+    def show_vocab(self):
+        self.page = "vocab"
+        self.clear()
+        box = self.center_container(1280)
+        start = self.vocab_page * 20
+        end = start + 20
+        words = VOCAB[start:end]
+
+        self.label(box, "单词", 34, True, pady=2)
+        self.label(box, f"100个    第 {self.vocab_page + 1} / 5 页", 16, False, True, pady=4)
+
+        grid = tk.Frame(box, bg=BG)
+        grid.pack(pady=18)
+        for idx, (word, meaning) in enumerate(words, start=start + 1):
+            row = tk.Frame(grid, bg=BG)
+            row.pack(fill="x", pady=4)
+            tk.Label(row, text=f"{idx:03d}", bg=BG, fg=MUTED,
+                     font=(FONT_EN, 15), width=5, anchor="e").pack(side="left", padx=(0, 20))
+            tk.Label(row, text=word, bg=BG, fg=FG,
+                     font=(FONT_EN, 19, "bold"), width=22, anchor="w").pack(side="left")
+            tk.Label(row, text=meaning, bg=BG, fg=FG,
+                     font=(FONT_CN, 18), width=20, anchor="w").pack(side="left", padx=(28, 0))
+
+        nav = tk.Frame(box, bg=BG)
+        nav.pack(pady=14)
+        if self.vocab_page > 0:
+            tk.Button(nav, text="上一页", command=self.prev_vocab, bg=BG, fg=FG,
+                      activebackground=BG, activeforeground=FG, relief="flat",
+                      font=(FONT_CN, 15), cursor="hand2").pack(side="left", padx=25)
+        if self.vocab_page < 4:
+            tk.Button(nav, text="下一页", command=self.next_vocab, bg=FG, fg=BG,
+                      activebackground=FG, activeforeground=BG, relief="flat",
+                      font=(FONT_CN, 16, "bold"), padx=26, pady=8,
+                      cursor="hand2").pack(side="left", padx=25)
+        else:
+            tk.Button(nav, text="完成100个单词", command=self.finish_vocab, bg=FG, fg=BG,
+                      activebackground=FG, activeforeground=BG, relief="flat",
+                      font=(FONT_CN, 16, "bold"), padx=26, pady=8,
+                      cursor="hand2").pack(side="left", padx=25)
+        self.text_button(box, "返回今天", self.show_home)
+
+    def prev_vocab(self):
+        self.vocab_page = max(0, self.vocab_page - 1)
+        self.show_vocab()
+
+    def next_vocab(self):
+        self.vocab_page = min(4, self.vocab_page + 1)
+        self.show_vocab()
+
+    def finish_vocab(self):
+        self.mark_complete("vocab")
+        self.show_listening()
+
+    def show_listening(self):
+        self.page = "listening"
+        self.reveal = False
+        self.render_listening()
+
+    def render_listening(self):
+        self.clear()
+        box = self.center_container()
+        self.label(box, "听力", 38, True)
+        self.label(box, "1句    目标时间 20分钟以内", 16, False, True)
+        self.label(box, LISTENING["instruction"], 21, False, False, pady=20)
+        if not self.reveal:
+            self.label(box, "听写完成以后，再显示原句。", 18, False, True, pady=20)
+            self.button(box, "显示原句", self.reveal_listening)
+        else:
+            self.label(box, LISTENING["sentence"], 28, True, pady=18)
+            self.label(box, LISTENING["translation"], 20, False, True, pady=8)
+            self.button(box, "完成并继续", self.finish_listening)
+        self.text_button(box, "返回今天", self.show_home)
+
+    def reveal_listening(self):
+        self.reveal = True
+        self.render_listening()
+
+    def finish_listening(self):
+        self.mark_complete("listening")
+        self.show_reading()
+
+    def show_reading(self):
+        self.page = "reading"
+        self.reveal = False
+        self.render_reading()
+
+    def render_reading(self):
+        self.clear()
+        box = self.center_container()
+        self.label(box, "长难句", 38, True)
+        self.label(box, "1句    目标时间 20分钟以内", 16, False, True)
+        self.label(box, READING["sentence"], 27, True, pady=24)
+        if not self.reveal:
+            self.label(box, READING["instruction"], 19, False, True)
+            self.button(box, "我已拆分", self.reveal_reading)
+        else:
+            self.label(box, READING["structure"], 19, False, False, pady=12)
+            self.label(box, READING["translation"], 19, False, True, pady=12)
+            self.button(box, "完成并继续", self.finish_reading)
+        self.text_button(box, "返回今天", self.show_home)
+
+    def reveal_reading(self):
+        self.reveal = True
+        self.render_reading()
+
+    def finish_reading(self):
+        self.mark_complete("reading")
+        self.show_speaking()
+
+    def show_speaking(self):
+        self.page = "speaking"
+        self.reveal = False
+        self.render_speaking()
+
+    def render_speaking(self):
+        self.clear()
+        box = self.center_container()
+        self.label(box, "口语", 38, True)
+        self.label(box, "1题    目标时间 15分钟以内", 16, False, True)
+        self.label(box, SPEAKING["question"], 30, True, pady=24)
+        self.label(box, SPEAKING["instruction"], 19, False, True)
+        if not self.reveal:
+            self.button(box, "回答完成", self.reveal_speaking)
+        else:
+            self.label(box, "示例", 16, False, True, pady=8)
+            self.label(box, SPEAKING["sample"], 23, False, False, pady=8)
+            self.button(box, "完成并继续", self.finish_speaking)
+        self.text_button(box, "返回今天", self.show_home)
+
+    def reveal_speaking(self):
+        self.reveal = True
+        self.render_speaking()
+
+    def finish_speaking(self):
+        self.mark_complete("speaking")
+        self.show_writing()
+
+    def show_writing(self):
+        self.page = "writing"
+        self.reveal = False
+        self.render_writing()
+
+    def render_writing(self):
+        self.clear()
+        box = self.center_container()
+        self.label(box, "写作", 38, True)
+        self.label(box, "1句    目标时间 20分钟以内", 16, False, True)
+        self.label(box, WRITING["prompt"], 25, True, pady=22)
+        self.label(box, WRITING["instruction"], 18, False, True)
+
+        entry = tk.Text(box, height=4, width=66, bg=BG, fg=FG, insertbackground=FG,
+                        font=(FONT_EN, 20), relief="solid", bd=1,
+                        highlightthickness=1, highlightbackground=FG,
+                        highlightcolor=FG, wrap="word")
+        entry.pack(pady=18)
+        saved = self.state_data.get("writing_answer", "")
+        if saved:
+            entry.insert("1.0", saved)
+
+        def save_and_reveal():
+            self.state_data["writing_answer"] = entry.get("1.0", "end").strip()
+            self.save_state()
+            self.reveal = True
+            self.render_writing_revealed()
+
+        self.button(box, "写完了", save_and_reveal)
+        self.text_button(box, "返回今天", self.show_home)
+
+    def render_writing_revealed(self):
+        self.clear()
+        box = self.center_container()
+        self.label(box, "写作", 38, True)
+        self.label(box, "你的句子", 16, False, True)
+        self.label(box, self.state_data.get("writing_answer", ""), 24, False, False, pady=15)
+        self.label(box, "示例", 16, False, True)
+        self.label(box, WRITING["sample"], 23, False, False, pady=15)
+        self.button(box, "完成今天", self.finish_writing)
+        self.text_button(box, "返回今天", self.show_home)
+
+    def finish_writing(self):
+        self.mark_complete("writing")
+        self.show_done()
+
+    def show_done(self):
+        self.clear()
+        box = self.center_container()
+        self.label(box, "今天完成", 44, True, pady=10)
+        self.label(box, "100个单词    1句听力    1句长难句    1题口语    1句写作", 21, False, True, pady=10)
+        self.label(box, "明天继续。", 25, True, pady=22)
+        self.button(box, "返回今天", self.show_home)
 
 
 if __name__ == "__main__":
-    IELTSApp().mainloop()
+    app = IELTSApp()
+    app.mainloop()
