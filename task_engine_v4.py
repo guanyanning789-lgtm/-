@@ -41,11 +41,16 @@ def next_ltask(self): self.lt=(self.lt+1)%len(LISTENING_TASKS); self.show_listen
 
 def reading_task(self):
  self.clear(); f=self.center(); self.heading(f,'READING','IELTS PASSAGE · MIXED QUESTION TYPES'); v3.v2.timer_label(self,f,'reading')
- body=tk.Frame(f,bg=BG); body.pack(); left=tk.Text(body,width=72,height=22,bg=BG,fg=FG,insertbackground=FG,font=(FONT,13),wrap='word',relief='flat',padx=10,pady=8); left.grid(row=0,column=0,padx=18); left.insert('1.0',READING_PASSAGE); left.config(state='disabled')
- right=tk.Frame(body,bg=BG); right.grid(row=0,column=1,padx=18,sticky='n'); self.r_entries=[]
+ body=tk.Frame(f,bg=BG); body.pack()
+ # Medium size: larger than V4, smaller than the earlier sentence-training screen.
+ left=tk.Text(body,width=66,height=21,bg=BG,fg=FG,insertbackground=FG,font=(FONT,16),wrap='word',relief='flat',padx=12,pady=10,spacing1=2,spacing3=7)
+ left.grid(row=0,column=0,padx=22); left.insert('1.0',READING_PASSAGE); left.config(state='disabled')
+ right=tk.Frame(body,bg=BG); right.grid(row=0,column=1,padx=22,sticky='n'); self.r_entries=[]
  for i,(typ,text,ans) in enumerate(READING_TASKS):
-  tk.Label(right,text=typ,bg=BG,fg=MUTED,font=(FONT,10,'bold')).pack(anchor='w',pady=(4,0)); tk.Label(right,text=text,bg=BG,fg=FG,font=(FONT,11),wraplength=520,justify='left').pack(anchor='w'); e=tk.Entry(right,bg=BG,fg=FG,insertbackground=FG,font=(FONT,12),width=35,relief='solid',bd=1); e.pack(anchor='w',ipady=4,pady=3); self.r_entries.append((e,ans,text,typ))
- self.rres=tk.Label(f,text='',bg=BG,fg=FG,font=(FONT,11),wraplength=1200,justify='center'); self.rres.pack(pady=6); self.btn(f,'SUBMIT READING',lambda:check_rtask(self),18).pack(pady=5); self.back(f)
+  tk.Label(right,text=typ,bg=BG,fg=MUTED,font=(FONT,11,'bold')).pack(anchor='w',pady=(6,1))
+  tk.Label(right,text=text,bg=BG,fg=FG,font=(FONT,13),wraplength=560,justify='left').pack(anchor='w')
+  e=tk.Entry(right,bg=BG,fg=FG,insertbackground=FG,font=(FONT,13),width=34,relief='solid',bd=1); e.pack(anchor='w',ipady=5,pady=4); self.r_entries.append((e,ans,text,typ))
+ self.rres=tk.Label(f,text='',bg=BG,fg=FG,font=(FONT,12),wraplength=1250,justify='center'); self.rres.pack(pady=7); self.btn(f,'SUBMIT READING',lambda:check_rtask(self),18).pack(pady=5); self.back(f)
 
 def check_rtask(self):
  correct=0; feedback=[]
