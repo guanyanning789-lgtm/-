@@ -1,370 +1,231 @@
 import json
 import os
+import re
+import subprocess
+import threading
 import tkinter as tk
+import urllib.request
+from difflib import SequenceMatcher
 from datetime import datetime
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(APP_DIR, "study_progress.json")
+BG, FG, MUTED = "#000000", "#FFFFFF", "#BEBEBE"
+FONT = "Segoe UI"
 
-BG = "#000000"
-FG = "#FFFFFF"
-MUTED = "#BEBEBE"
-FONT_CN = "Microsoft YaHei UI"
-FONT_EN = "Segoe UI"
+VOCAB_RAW = [
+("cause","v.","caus(e)","导致"),("effect","n.","effect","影响"),("allow","v.","allow","允许"),("prevent","v.","pre- + vent","阻止"),("increase","v.","in- + crease","增加"),("decrease","v.","de- + crease","减少"),("government","n.","govern + -ment","政府"),("public","adj.","publ-","公共的"),("lifestyle","n.","life + style","生活方式"),("skill","n.","skill","技能"),
+("environment","n.","environ + -ment","环境"),("pollution","n.","pollute + -ion","污染"),("device","n.","device","设备"),("opinion","n.","opin + -ion","观点"),("suggest","v.","sug- + gest","建议"),("problem","n.","problem","问题"),("solution","n.","solut + -ion","解决方案"),("improve","v.","im- + prove","改善"),("provide","v.","pro- + vide","提供"),("benefit","n./v.","bene- + fit","益处"),
+("education","n.","educate + -ion","教育"),("health","n.","heal + -th","健康"),("transport","n.","trans- + port","交通"),("traffic","n.","traffic","交通流量"),("community","n.","commun + -ity","社区"),("technology","n.","techn + -ology","科技"),("information","n.","inform + -ation","信息"),("communication","n.","communicate + -ion","交流"),("development","n.","develop + -ment","发展"),("economy","n.","eco- + -nomy","经济"),
+("economic","adj.","econom + -ic","经济的"),("society","n.","soci + -ety","社会"),("social","adj.","soci + -al","社会的"),("culture","n.","cult + -ure","文化"),("cultural","adj.","culture + -al","文化的"),("population","n.","populate + -ion","人口"),("employment","n.","employ + -ment","就业"),("unemployment","n.","un- + employ + -ment","失业"),("industry","n.","industr- + -y","产业"),("business","n.","busy + -ness","商业"),
+("company","n.","company","公司"),("service","n.","serv + -ice","服务"),("system","n.","system","系统"),("policy","n.","policy","政策"),("law","n.","law","法律"),("education","n.","educate + -ion","教育"),("research","n./v.","re- + search","研究"),("science","n.","sci + -ence","科学"),("scientific","adj.","science + -ific","科学的"),("energy","n.","energ- + -y","能源"),
+("climate","n.","climate","气候"),("natural","adj.","nature + -al","自然的"),("resource","n.","re- + source","资源"),("protect","v.","pro- + tect","保护"),("protection","n.","protect + -ion","保护"),("reduce","v.","re- + duce","减少"),("reuse","v.","re- + use","再利用"),("recycle","v.","re- + cycle","回收"),("waste","n./v.","waste","浪费"),("sustainable","adj.","sustain + -able","可持续的"),
+("important","adj.","import + -ant","重要的"),("essential","adj.","essent + -ial","必要的"),("significant","adj.","sign + -ificant","显著的"),("major","adj.","major","主要的"),("common","adj.","common","常见的"),("popular","adj.","popul + -ar","流行的"),("positive","adj.","posit + -ive","积极的"),("negative","adj.","negat + -ive","消极的"),("effective","adj.","effect + -ive","有效的"),("efficient","adj.","effic + -ient","高效的"),
+("possible","adj.","poss + -ible","可能的"),("impossible","adj.","im- + possible","不可能的"),("necessary","adj.","necess + -ary","必要的"),("available","adj.","avail + -able","可用的"),("different","adj.","differ + -ent","不同的"),("similar","adj.","simil + -ar","相似的"),("modern","adj.","modern","现代的"),("traditional","adj.","tradition + -al","传统的"),("global","adj.","glob + -al","全球的"),("individual","n./adj.","in- + divide + -ual","个人"),
+("responsibility","n.","responsible + -ity","责任"),("opportunity","n.","opportune + -ity","机会"),("challenge","n.","challenge","挑战"),("advantage","n.","advantage","优点"),("disadvantage","n.","dis- + advantage","缺点"),("agree","v.","agree","同意"),("disagree","v.","dis- + agree","不同意"),("believe","v.","believe","相信"),("consider","v.","con- + sider","考虑"),("support","v.","support","支持"),
+("argue","v.","argue","论证"),("explain","v.","ex- + plain","解释"),("describe","v.","de- + scribe","描述"),("compare","v.","com- + pare","比较"),("contrast","v.","contra- + st","对比"),("increase","v.","in- + crease","增加"),("decline","v.","de- + cline","下降"),("improve","v.","im- + prove","改善"),("achieve","v.","achieve","实现"),("require","v.","re- + quire","需要")]
+VOCAB = VOCAB_RAW[:100]
+MEANINGS = {w.lower(): m for w,_,_,m in VOCAB}
 
-VOCAB = [
-    ("cause", "导致"), ("lead to", "导致"), ("effect", "影响"), ("allow", "允许"),
-    ("prevent", "阻止"), ("increase", "增加"), ("decrease", "减少"), ("government", "政府"),
-    ("public", "公共的"), ("lifestyle", "生活方式"), ("skill", "技能"), ("environment", "环境"),
-    ("pollution", "污染"), ("device", "设备"), ("opinion", "观点"), ("suggest", "建议"),
-    ("problem", "问题"), ("solution", "解决方案"), ("improve", "改善"), ("provide", "提供"),
-    ("benefit", "好处"), ("cost", "成本"), ("local", "当地的"), ("community", "社区"),
-    ("service", "服务"), ("transport", "交通"), ("traffic", "交通流量"), ("health", "健康"),
-    ("education", "教育"), ("family", "家庭"), ("city", "城市"), ("change", "改变"),
-    ("important", "重要的"), ("common", "常见的"), ("reason", "原因"), ("result", "结果"),
-    ("support", "支持"), ("reduce", "减少"), ("develop", "发展"), ("future", "未来"),
-    ("people", "人们"), ("work", "工作"), ("study", "学习"), ("travel", "旅行"),
-    ("live", "居住"), ("help", "帮助"), ("plan", "计划"), ("learn", "学习"),
-    ("start", "开始"), ("finish", "完成"), ("choose", "选择"), ("practice", "练习"),
-    ("change", "变化"), ("create", "创造"), ("use", "使用"), ("need", "需要"),
-    ("decide", "决定"), ("happen", "发生"), ("save", "节省"), ("money", "金钱"),
-    ("time", "时间"), ("technology", "技术"), ("society", "社会"), ("culture", "文化"),
-    ("country", "国家"), ("school", "学校"), ("student", "学生"), ("teacher", "教师"),
-    ("company", "公司"), ("job", "工作"), ("experience", "经验"), ("knowledge", "知识"),
-    ("information", "信息"), ("communication", "沟通"), ("language", "语言"), ("ability", "能力"),
-    ("quality", "质量"), ("choice", "选择"), ("difference", "差异"), ("example", "例子"),
-    ("challenge", "挑战"), ("advantage", "优点"), ("disadvantage", "缺点"), ("agree", "同意"),
-    ("disagree", "不同意"), ("believe", "相信"), ("consider", "考虑"), ("possible", "可能的"),
-    ("necessary", "必要的"), ("successful", "成功的"), ("available", "可用的"), ("different", "不同的"),
-    ("similar", "相似的"), ("modern", "现代的"), ("traditional", "传统的"), ("natural", "自然的"),
-    ("global", "全球的"), ("individual", "个人"), ("responsibility", "责任"), ("opportunity", "机会")
+LISTENING = [
+"The library will remain open until nine o'clock on weekdays.",
+"Students are required to submit the form before Friday afternoon.",
+"The monthly membership fee includes access to the swimming pool.",
+"Public transport can reduce traffic congestion in large cities.",
+"The lecture has been moved from room twelve to room twenty-one.",
+"Please bring your passport and a recent photograph to the appointment.",
+"The new recycling program has significantly reduced household waste.",
+"Participants should arrive at least fifteen minutes before the session.",
+"Many young people choose online courses because they offer greater flexibility.",
+"The research suggests that regular exercise can improve mental health.",
+"The museum provides discounted tickets for full-time students.",
+"Applicants must provide two references and proof of their current address."
 ]
 
-LISTENING = {
-    "title": "听力",
-    "instruction": "先看任务，然后隐藏原句。听写完成后再核对。",
-    "sentence": "You need to pay a 50-dollar deposit for the membership.",
-    "translation": "你需要为会员资格支付50美元押金。",
-}
+READING = [
+("Although public transport requires significant investment, it can reduce traffic congestion and improve the quality of life for people who live in large cities.", "Main clause: it can reduce traffic congestion and improve the quality of life. | Connector: Although | Subordinate clause: public transport requires significant investment | Modifier: who live in large cities -> people"),
+("People who regularly use public parks are more likely to meet recommended levels of physical activity than those who do not have easy access to green spaces.", "Main clause: People are more likely to meet recommended levels. | Relative clause: who regularly use public parks -> People | Comparison: than those... | Relative clause: who do not have easy access... -> those"),
+("Because technology develops so rapidly, skills that were valuable only a few years ago may no longer be sufficient for workers entering the modern labour market.", "Main clause: skills may no longer be sufficient. | Reason clause: Because technology develops so rapidly | Relative clause: that were valuable... -> skills | Participle phrase: entering the modern labour market -> workers"),
+("While some people argue that governments should focus on economic growth, others believe that protecting the environment must be an equally important priority.", "Main clauses: some people argue... / others believe... | Connector: While | Noun clause: that governments should focus... | Noun clause: that protecting the environment..."),
+("Students who learn how to identify the main clause before translating every word usually understand complex academic sentences more accurately.", "Main clause: Students usually understand complex academic sentences more accurately. | Relative clause: who learn... -> Students | Embedded question: how to identify the main clause | Time phrase: before translating every word")
+]
 
-READING = {
-    "title": "长难句",
-    "instruction": "先自己拆分句子，再看结构提示。",
-    "sentence": "Although public transport requires significant investment, it can reduce traffic congestion and improve the quality of life for people who live in large cities.",
-    "translation": "虽然公共交通需要大量投资，但它可以减少交通拥堵，并改善居住在大城市中的人们的生活质量。",
-    "structure": "Although + 从句，主句 + and + 并列谓语，who + 定语从句。",
-}
+WRITING = [
+("Write one clear sentence explaining one benefit of public transport.", "Public transport can reduce traffic congestion and improve air quality."),
+("Write one sentence giving a reason why governments should invest in education.", "Governments should invest in education because a skilled population supports long-term economic growth."),
+("Write one sentence comparing online learning with classroom learning.", "Online learning is more flexible than classroom learning, although it may provide less face-to-face interaction."),
+("Write one sentence about an environmental problem and its effect.", "Air pollution can cause serious health problems, especially in densely populated cities."),
+("Write one sentence giving your opinion about technology in education.", "I believe technology can improve education when it is used to support, rather than replace, effective teaching.")
+]
 
-SPEAKING = {
-    "title": "口语",
-    "instruction": "大声回答一次。控制在60秒以内。完成后继续。",
-    "question": "What do you like most about your hometown?",
-    "sample": "I like the public transport system because it is convenient and helps people save time.",
-}
+SPEAKING = [
+"Describe one thing you like about your hometown and explain why.",
+"Do you prefer studying alone or with other people? Why?",
+"How has technology changed the way people learn?",
+"What kind of public transport is common where you live?",
+"Do you think people should spend more time outdoors? Why?"
+]
 
-WRITING = {
-    "title": "写作",
-    "instruction": "自己写一句英文。只表达一个清楚的意思，完成后再核对示例。",
-    "prompt": "政府应该改善公共交通。请写一句表达同意的英文句子。",
-    "sample": "I agree that the government should provide better public transport because it can reduce traffic and improve daily life.",
-}
-
+class Tooltip:
+    def __init__(self, widget, text):
+        self.widget, self.text, self.tip = widget, text, None
+        widget.bind("<Enter>", self.show, add="+")
+        widget.bind("<Leave>", self.hide, add="+")
+    def show(self, _=None):
+        if self.tip or not self.text: return
+        x = self.widget.winfo_rootx() + 20; y = self.widget.winfo_rooty() + 30
+        self.tip = tk.Toplevel(self.widget); self.tip.overrideredirect(True); self.tip.geometry(f"+{x}+{y}")
+        tk.Label(self.tip, text=self.text, bg="#FFFFFF", fg="#000000", font=("Microsoft YaHei UI", 12), padx=10, pady=6).pack()
+    def hide(self, _=None):
+        if self.tip: self.tip.destroy(); self.tip = None
 
 class IELTSApp(tk.Tk):
     def __init__(self):
-        super().__init__()
-        self.title("IELTS Daily")
-        self.configure(bg=BG)
-        self.attributes("-fullscreen", True)
+        super().__init__(); self.title("IELTS 5H")
+        self.configure(bg=BG); self.attributes("-fullscreen", True)
         self.bind("<Escape>", lambda e: self.attributes("-fullscreen", False))
-        self.bind("<F11>", self.toggle_fullscreen)
-
-        self.state_data = self.load_state()
-        self.page = "home"
-        self.vocab_page = 0
-        self.reveal = False
-
-        self.root_frame = tk.Frame(self, bg=BG)
-        self.root_frame.pack(fill="both", expand=True)
+        self.bind("<F11>", lambda e: self.attributes("-fullscreen", not self.attributes("-fullscreen")))
+        self.state_data = self.load_state(); self.vocab_page = 0; self.listen_i = 0; self.read_i = 0; self.write_i = 0; self.speak_i = 0
+        self.container = tk.Frame(self, bg=BG); self.container.pack(fill="both", expand=True)
         self.show_home()
 
-    def toggle_fullscreen(self, event=None):
-        self.attributes("-fullscreen", not self.attributes("-fullscreen"))
-
     def load_state(self):
-        if not os.path.exists(DATA_FILE):
-            return {"date": datetime.now().strftime("%Y-%m-%d"), "completed": []}
         try:
-            with open(DATA_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if data.get("date") != datetime.now().strftime("%Y-%m-%d"):
-                return {"date": datetime.now().strftime("%Y-%m-%d"), "completed": []}
-            return data
-        except Exception:
-            return {"date": datetime.now().strftime("%Y-%m-%d"), "completed": []}
-
+            with open(DATA_FILE, "r", encoding="utf-8") as f: return json.load(f)
+        except Exception: return {}
     def save_state(self):
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(self.state_data, f, ensure_ascii=False, indent=2)
-
+        self.state_data["updated_at"] = datetime.now().isoformat(timespec="seconds")
+        with open(DATA_FILE, "w", encoding="utf-8") as f: json.dump(self.state_data, f, ensure_ascii=False, indent=2)
     def clear(self):
-        for widget in self.root_frame.winfo_children():
-            widget.destroy()
-
-    def center_container(self, max_width=1180):
-        outer = tk.Frame(self.root_frame, bg=BG)
-        outer.pack(fill="both", expand=True)
-        box = tk.Frame(outer, bg=BG, width=max_width)
-        box.place(relx=0.5, rely=0.5, anchor="center")
-        return box
-
-    def label(self, parent, text, size=24, bold=False, muted=False, pady=8):
-        font = (FONT_CN, size, "bold" if bold else "normal")
-        w = tk.Label(parent, text=text, bg=BG, fg=MUTED if muted else FG,
-                     font=font, justify="center", wraplength=1180)
-        w.pack(pady=pady)
-        return w
-
-    def button(self, parent, text, command, width=18, pady=8):
-        b = tk.Button(parent, text=text, command=command, bg=FG, fg=BG,
-                      activebackground=FG, activeforeground=BG,
-                      font=(FONT_CN, 18, "bold"), relief="flat", bd=0,
-                      cursor="hand2", width=width, padx=12, pady=10)
-        b.pack(pady=pady)
-        return b
-
-    def text_button(self, parent, text, command):
-        b = tk.Button(parent, text=text, command=command, bg=BG, fg=FG,
-                      activebackground=BG, activeforeground=FG,
-                      font=(FONT_CN, 15), relief="flat", bd=0,
-                      cursor="hand2")
-        b.pack(pady=6)
-        return b
-
-    def mark_complete(self, key):
-        done = set(self.state_data.get("completed", []))
-        done.add(key)
-        self.state_data["completed"] = sorted(done)
-        self.save_state()
-
-    def is_done(self, key):
-        return key in self.state_data.get("completed", [])
+        for w in self.container.winfo_children(): w.destroy()
+    def btn(self, parent, text, command, width=24):
+        return tk.Button(parent, text=text, command=command, bg=FG, fg=BG, activebackground="#DDDDDD", activeforeground=BG, relief="flat", bd=0, font=(FONT, 16, "bold"), padx=20, pady=12, width=width)
+    def center(self):
+        frame = tk.Frame(self.container, bg=BG); frame.place(relx=.5, rely=.5, anchor="center"); return frame
+    def heading(self, parent, title, sub=""):
+        tk.Label(parent, text=title, bg=BG, fg=FG, font=(FONT, 34, "bold")).pack(pady=(0,12))
+        if sub: tk.Label(parent, text=sub, bg=BG, fg=MUTED, font=(FONT, 14)).pack(pady=(0,26))
+    def back(self, parent):
+        tk.Button(parent, text="TODAY", command=self.show_home, bg=BG, fg=FG, activebackground=BG, activeforeground=FG, relief="flat", font=(FONT,13), bd=0).pack(pady=16)
 
     def show_home(self):
-        self.page = "home"
-        self.clear()
-        box = self.center_container()
-        self.label(box, "IELTS DAILY", 42, True, pady=4)
-        self.label(box, "今天的学习", 22, False, True, pady=(0 if False else 6))
-
-        completed = len(self.state_data.get("completed", []))
-        self.label(box, f"已完成 {completed} / 9", 18, False, True, pady=16)
-
-        menu = [
-            ("单词 100", self.show_vocab, self.is_done("vocab")),
-            ("听力 1句", self.show_listening, self.is_done("listening")),
-            ("长难句 1句", self.show_reading, self.is_done("reading")),
-            ("口语 1题", self.show_speaking, self.is_done("speaking")),
-            ("写作 1句", self.show_writing, self.is_done("writing")),
-        ]
-        for title, cmd, done in menu:
-            text = f"{title}    已完成" if done else title
-            self.text_button(box, text, cmd)
-
-        self.label(box, "F11 全屏    Esc 退出全屏", 13, False, True, pady=20)
+        self.clear(); f=self.center(); self.heading(f,"IELTS · DAY 1","5 HOURS · IMMERSIVE TRAINING")
+        for title, sub, cmd in [
+            ("VOCABULARY","100 words · roots & affixes · 60 min",self.show_vocab),
+            ("LISTENING","dictation loop · audio · accuracy · 60 min",self.show_listening),
+            ("READING","complex sentence method · guided practice · 60 min",self.show_reading),
+            ("SPEAKING","IELTS prompts · repeated answers · 60 min",self.show_speaking),
+            ("WRITING","one sentence → instant correction · 60 min",self.show_writing)]:
+            b=self.btn(f,title,cmd,30); b.pack(pady=6); tk.Label(f,text=sub,bg=BG,fg=MUTED,font=(FONT,11)).pack(pady=(0,8))
 
     def show_vocab(self):
-        self.page = "vocab"
-        self.clear()
-        box = self.center_container(1280)
-        start = self.vocab_page * 20
-        end = start + 20
-        words = VOCAB[start:end]
+        self.clear(); outer=self.center(); self.heading(outer,"VOCABULARY",f"100 WORDS · PAGE {self.vocab_page+1} / 5 · HOVER FOR MEANING")
+        grid=tk.Frame(outer,bg=BG); grid.pack()
+        start=self.vocab_page*20
+        for r,(word,pos,root,meaning) in enumerate(VOCAB[start:start+20]):
+            tk.Label(grid,text=f"{start+r+1:03d}",bg=BG,fg=MUTED,font=(FONT,13),width=5,anchor="e").grid(row=r,column=0,padx=(0,18),pady=3)
+            wl=tk.Label(grid,text=word,bg=BG,fg=FG,font=(FONT,16,"bold"),width=18,anchor="w",cursor="hand2"); wl.grid(row=r,column=1,pady=3); Tooltip(wl,meaning)
+            tk.Label(grid,text=pos,bg=BG,fg=MUTED,font=(FONT,12),width=8,anchor="w").grid(row=r,column=2,padx=18)
+            tk.Label(grid,text=root,bg=BG,fg=FG,font=(FONT,13),width=24,anchor="w").grid(row=r,column=3)
+        nav=tk.Frame(outer,bg=BG); nav.pack(pady=18)
+        if self.vocab_page>0: self.btn(nav,"PREVIOUS",self.prev_vocab,12).pack(side="left",padx=5)
+        if self.vocab_page<4: self.btn(nav,"NEXT 20",self.next_vocab,12).pack(side="left",padx=5)
+        else: self.btn(nav,"COMPLETE",self.complete_vocab,12).pack(side="left",padx=5)
+        self.back(outer)
+    def prev_vocab(self): self.vocab_page-=1; self.show_vocab()
+    def next_vocab(self): self.vocab_page+=1; self.show_vocab()
+    def complete_vocab(self): self.state_data["vocabulary_complete"]=True; self.save_state(); self.show_home()
 
-        self.label(box, "单词", 34, True, pady=2)
-        self.label(box, f"100个    第 {self.vocab_page + 1} / 5 页", 16, False, True, pady=4)
-
-        grid = tk.Frame(box, bg=BG)
-        grid.pack(pady=18)
-        for idx, (word, meaning) in enumerate(words, start=start + 1):
-            row = tk.Frame(grid, bg=BG)
-            row.pack(fill="x", pady=4)
-            tk.Label(row, text=f"{idx:03d}", bg=BG, fg=MUTED,
-                     font=(FONT_EN, 15), width=5, anchor="e").pack(side="left", padx=(0, 20))
-            tk.Label(row, text=word, bg=BG, fg=FG,
-                     font=(FONT_EN, 19, "bold"), width=22, anchor="w").pack(side="left")
-            tk.Label(row, text=meaning, bg=BG, fg=FG,
-                     font=(FONT_CN, 18), width=20, anchor="w").pack(side="left", padx=(28, 0))
-
-        nav = tk.Frame(box, bg=BG)
-        nav.pack(pady=14)
-        if self.vocab_page > 0:
-            tk.Button(nav, text="上一页", command=self.prev_vocab, bg=BG, fg=FG,
-                      activebackground=BG, activeforeground=FG, relief="flat",
-                      font=(FONT_CN, 15), cursor="hand2").pack(side="left", padx=25)
-        if self.vocab_page < 4:
-            tk.Button(nav, text="下一页", command=self.next_vocab, bg=FG, fg=BG,
-                      activebackground=FG, activeforeground=BG, relief="flat",
-                      font=(FONT_CN, 16, "bold"), padx=26, pady=8,
-                      cursor="hand2").pack(side="left", padx=25)
-        else:
-            tk.Button(nav, text="完成100个单词", command=self.finish_vocab, bg=FG, fg=BG,
-                      activebackground=FG, activeforeground=BG, relief="flat",
-                      font=(FONT_CN, 16, "bold"), padx=26, pady=8,
-                      cursor="hand2").pack(side="left", padx=25)
-        self.text_button(box, "返回今天", self.show_home)
-
-    def prev_vocab(self):
-        self.vocab_page = max(0, self.vocab_page - 1)
-        self.show_vocab()
-
-    def next_vocab(self):
-        self.vocab_page = min(4, self.vocab_page + 1)
-        self.show_vocab()
-
-    def finish_vocab(self):
-        self.mark_complete("vocab")
-        self.show_listening()
+    def speak_text(self, text):
+        def run():
+            safe=text.replace("'","''")
+            script=("Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+                    "$s.Rate=0; $s.Volume=100; $s.Speak('"+safe+"')")
+            try: subprocess.run(["powershell","-NoProfile","-Command",script],capture_output=True,timeout=30)
+            except Exception: pass
+        threading.Thread(target=run,daemon=True).start()
+    def norm(self,s): return re.sub(r"[^a-z0-9 ]","",s.lower()).strip()
+    def accuracy(self,a,b):
+        na,nb=self.norm(a),self.norm(b)
+        if not nb:return 0
+        return round(100*SequenceMatcher(None,na,nb).ratio())
 
     def show_listening(self):
-        self.page = "listening"
-        self.reveal = False
-        self.render_listening()
-
-    def render_listening(self):
-        self.clear()
-        box = self.center_container()
-        self.label(box, "听力", 38, True)
-        self.label(box, "1句    目标时间 20分钟以内", 16, False, True)
-        self.label(box, LISTENING["instruction"], 21, False, False, pady=20)
-        if not self.reveal:
-            self.label(box, "听写完成以后，再显示原句。", 18, False, True, pady=20)
-            self.button(box, "显示原句", self.reveal_listening)
-        else:
-            self.label(box, LISTENING["sentence"], 28, True, pady=18)
-            self.label(box, LISTENING["translation"], 20, False, True, pady=8)
-            self.button(box, "完成并继续", self.finish_listening)
-        self.text_button(box, "返回今天", self.show_home)
-
-    def reveal_listening(self):
-        self.reveal = True
-        self.render_listening()
-
-    def finish_listening(self):
-        self.mark_complete("listening")
-        self.show_reading()
+        self.clear(); f=self.center(); self.heading(f,"LISTENING",f"DICTATION {self.listen_i+1} / {len(LISTENING)} · 60 MIN SESSION")
+        tk.Label(f,text="Listen. Type exactly what you hear. Check. Repeat.",bg=BG,fg=FG,font=(FONT,17)).pack(pady=14)
+        self.btn(f,"▶ PLAY",lambda:self.speak_text(LISTENING[self.listen_i]),16).pack(pady=12)
+        self.listen_entry=tk.Entry(f,bg=BG,fg=FG,insertbackground=FG,relief="solid",bd=1,font=(FONT,18),justify="center",width=72)
+        self.listen_entry.pack(ipady=10,pady=18); self.listen_entry.focus_set()
+        self.listen_result=tk.Label(f,text="",bg=BG,fg=FG,font=(FONT,15),wraplength=1100,justify="center"); self.listen_result.pack(pady=12)
+        self.btn(f,"CHECK",self.check_listening,16).pack(pady=8); self.back(f)
+    def check_listening(self):
+        target=LISTENING[self.listen_i]; ans=self.listen_entry.get(); score=self.accuracy(ans,target)
+        self.listen_result.config(text=f"ACCURACY  {score}%\n\n{target}")
+        self.state_data.setdefault("listening_scores",[]).append(score); self.save_state()
+        self.btn(self.listen_result.master,"NEXT DICTATION",self.next_listening,16).pack(pady=10)
+    def next_listening(self): self.listen_i=(self.listen_i+1)%len(LISTENING); self.show_listening()
 
     def show_reading(self):
-        self.page = "reading"
-        self.reveal = False
-        self.render_reading()
-
-    def render_reading(self):
-        self.clear()
-        box = self.center_container()
-        self.label(box, "长难句", 38, True)
-        self.label(box, "1句    目标时间 20分钟以内", 16, False, True)
-        self.label(box, READING["sentence"], 27, True, pady=24)
-        if not self.reveal:
-            self.label(box, READING["instruction"], 19, False, True)
-            self.button(box, "我已拆分", self.reveal_reading)
-        else:
-            self.label(box, READING["structure"], 19, False, False, pady=12)
-            self.label(box, READING["translation"], 19, False, True, pady=12)
-            self.button(box, "完成并继续", self.finish_reading)
-        self.text_button(box, "返回今天", self.show_home)
-
+        self.clear(); f=self.center(); self.heading(f,"READING",f"COMPLEX SENTENCE {self.read_i+1} / {len(READING)} · 60 MIN SESSION")
+        steps="1  Find finite verbs   →   2  Find connectors   →   3  Identify the main clause   →   4  Attach modifiers   →   5  Paraphrase"
+        tk.Label(f,text=steps,bg=BG,fg=MUTED,font=(FONT,14),wraplength=1250,justify="center").pack(pady=(0,28))
+        sentence=READING[self.read_i][0]
+        tk.Label(f,text=sentence,bg=BG,fg=FG,font=(FONT,22,"bold"),wraplength=1250,justify="center").pack(pady=18)
+        tk.Label(f,text="First, say the main clause aloud. Then reveal the structure.",bg=BG,fg=MUTED,font=(FONT,15)).pack(pady=12)
+        self.read_result=tk.Label(f,text="",bg=BG,fg=FG,font=(FONT,15),wraplength=1200,justify="center"); self.read_result.pack(pady=12)
+        self.btn(f,"SHOW STRUCTURE",self.reveal_reading,18).pack(pady=8); self.back(f)
     def reveal_reading(self):
-        self.reveal = True
-        self.render_reading()
-
-    def finish_reading(self):
-        self.mark_complete("reading")
-        self.show_speaking()
+        self.read_result.config(text=READING[self.read_i][1])
+        self.btn(self.read_result.master,"NEXT SENTENCE",self.next_reading,18).pack(pady=10)
+    def next_reading(self): self.read_i=(self.read_i+1)%len(READING); self.show_reading()
 
     def show_speaking(self):
-        self.page = "speaking"
-        self.reveal = False
-        self.render_speaking()
-
-    def render_speaking(self):
-        self.clear()
-        box = self.center_container()
-        self.label(box, "口语", 38, True)
-        self.label(box, "1题    目标时间 15分钟以内", 16, False, True)
-        self.label(box, SPEAKING["question"], 30, True, pady=24)
-        self.label(box, SPEAKING["instruction"], 19, False, True)
-        if not self.reveal:
-            self.button(box, "回答完成", self.reveal_speaking)
-        else:
-            self.label(box, "示例", 16, False, True, pady=8)
-            self.label(box, SPEAKING["sample"], 23, False, False, pady=8)
-            self.button(box, "完成并继续", self.finish_speaking)
-        self.text_button(box, "返回今天", self.show_home)
-
-    def reveal_speaking(self):
-        self.reveal = True
-        self.render_speaking()
-
-    def finish_speaking(self):
-        self.mark_complete("speaking")
-        self.show_writing()
+        self.clear(); f=self.center(); self.heading(f,"SPEAKING",f"PROMPT {self.speak_i+1} / {len(SPEAKING)} · 60 MIN SESSION")
+        tk.Label(f,text=SPEAKING[self.speak_i],bg=BG,fg=FG,font=(FONT,25,"bold"),wraplength=1150,justify="center").pack(pady=30)
+        tk.Label(f,text="Answer for 60–90 seconds. Repeat once with fewer pauses and clearer structure.",bg=BG,fg=MUTED,font=(FONT,15)).pack(pady=12)
+        self.btn(f,"NEXT PROMPT",self.next_speaking,18).pack(pady=18); self.back(f)
+    def next_speaking(self): self.speak_i=(self.speak_i+1)%len(SPEAKING); self.show_speaking()
 
     def show_writing(self):
-        self.page = "writing"
-        self.reveal = False
-        self.render_writing()
+        self.clear(); f=self.center(); self.heading(f,"WRITING",f"SENTENCE {self.write_i+1} / {len(WRITING)} · 60 MIN SESSION")
+        prompt,model=WRITING[self.write_i]
+        tk.Label(f,text=prompt,bg=BG,fg=FG,font=(FONT,21,"bold"),wraplength=1100,justify="center").pack(pady=20)
+        self.write_entry=tk.Entry(f,bg=BG,fg=FG,insertbackground=FG,relief="solid",bd=1,font=(FONT,18),justify="center",width=78)
+        self.write_entry.pack(ipady=10,pady=18); self.write_entry.focus_set()
+        self.write_result=tk.Label(f,text="",bg=BG,fg=FG,font=(FONT,14),wraplength=1200,justify="center"); self.write_result.pack(pady=10)
+        self.btn(f,"CORRECT NOW",self.correct_writing,18).pack(pady=8); self.back(f)
+    def basic_correct(self,text):
+        t=text.strip(); notes=[]
+        if t and t[0].islower(): t=t[0].upper()+t[1:]; notes.append("Start with a capital letter.")
+        replacements={"people is":"people are","people has":"people have","government should to":"government should","can leads to":"can lead to","can improves":"can improve","can reduces":"can reduce"}
+        for a,b in replacements.items():
+            if a in t.lower():
+                t=re.sub(re.escape(a),b,t,flags=re.I); notes.append(f"Use: {b}")
+        if t and t[-1] not in ".!?”": t+="."; notes.append("Add end punctuation.")
+        return t, notes
+    def ollama_correct(self,text,callback):
+        def run():
+            try:
+                prompt=("Correct this IELTS sentence. Return exactly 3 short lines in English only: CORRECTED:, ERROR:, BETTER:. "
+                        "Keep the learner's meaning and explain only the most important grammar or word-choice issue. Sentence: "+text)
+                payload=json.dumps({"model":"qwen3:8b","prompt":prompt,"stream":False,"options":{"temperature":0.1}}).encode()
+                req=urllib.request.Request("http://127.0.0.1:11434/api/generate",data=payload,headers={"Content-Type":"application/json"})
+                with urllib.request.urlopen(req,timeout=8) as r: result=json.loads(r.read().decode())["response"].strip()
+                self.after(0,lambda:callback(result))
+            except Exception:
+                corrected,notes=self.basic_correct(text); model=WRITING[self.write_i][1]
+                result="CORRECTED: "+corrected+"\nERROR: "+(" ".join(notes) if notes else "No obvious basic grammar error detected.")+"\nBETTER: "+model
+                self.after(0,lambda:callback(result))
+        threading.Thread(target=run,daemon=True).start()
+    def correct_writing(self):
+        text=self.write_entry.get().strip()
+        if not text: self.write_result.config(text="Write one sentence first."); return
+        self.write_result.config(text="Checking...")
+        def done(result):
+            self.write_result.config(text=result)
+            self.state_data.setdefault("writing_history",[]).append({"input":text,"feedback":result}); self.save_state()
+            self.btn(self.write_result.master,"NEXT SENTENCE",self.next_writing,18).pack(pady=10)
+        self.ollama_correct(text,done)
+    def next_writing(self): self.write_i=(self.write_i+1)%len(WRITING); self.show_writing()
 
-    def render_writing(self):
-        self.clear()
-        box = self.center_container()
-        self.label(box, "写作", 38, True)
-        self.label(box, "1句    目标时间 20分钟以内", 16, False, True)
-        self.label(box, WRITING["prompt"], 25, True, pady=22)
-        self.label(box, WRITING["instruction"], 18, False, True)
-
-        entry = tk.Text(box, height=4, width=66, bg=BG, fg=FG, insertbackground=FG,
-                        font=(FONT_EN, 20), relief="solid", bd=1,
-                        highlightthickness=1, highlightbackground=FG,
-                        highlightcolor=FG, wrap="word")
-        entry.pack(pady=18)
-        saved = self.state_data.get("writing_answer", "")
-        if saved:
-            entry.insert("1.0", saved)
-
-        def save_and_reveal():
-            self.state_data["writing_answer"] = entry.get("1.0", "end").strip()
-            self.save_state()
-            self.reveal = True
-            self.render_writing_revealed()
-
-        self.button(box, "写完了", save_and_reveal)
-        self.text_button(box, "返回今天", self.show_home)
-
-    def render_writing_revealed(self):
-        self.clear()
-        box = self.center_container()
-        self.label(box, "写作", 38, True)
-        self.label(box, "你的句子", 16, False, True)
-        self.label(box, self.state_data.get("writing_answer", ""), 24, False, False, pady=15)
-        self.label(box, "示例", 16, False, True)
-        self.label(box, WRITING["sample"], 23, False, False, pady=15)
-        self.button(box, "完成今天", self.finish_writing)
-        self.text_button(box, "返回今天", self.show_home)
-
-    def finish_writing(self):
-        self.mark_complete("writing")
-        self.show_done()
-
-    def show_done(self):
-        self.clear()
-        box = self.center_container()
-        self.label(box, "今天完成", 44, True, pady=10)
-        self.label(box, "100个单词    1句听力    1句长难句    1题口语    1句写作", 21, False, True, pady=10)
-        self.label(box, "明天继续。", 25, True, pady=22)
-        self.button(box, "返回今天", self.show_home)
-
-
-if __name__ == "__main__":
-    app = IELTSApp()
-    app.mainloop()
+if __name__ == "__main__": IELTSApp().mainloop()
