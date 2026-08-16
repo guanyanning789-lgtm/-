@@ -2,12 +2,12 @@
 cd /d "%~dp0"
 where py >nul 2>nul
 if %errorlevel%==0 (
-  start "" pyw start_app.py
+  start "" pyw learning_engine_v2.py
   exit /b
 )
 where pythonw >nul 2>nul
 if %errorlevel%==0 (
-  start "" pythonw start_app.py
+  start "" pythonw learning_engine_v2.py
   exit /b
 )
-python start_app.py
+python learning_engine_v2.py
